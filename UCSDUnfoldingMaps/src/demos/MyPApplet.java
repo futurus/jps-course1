@@ -19,12 +19,13 @@ public class MyPApplet extends PApplet{
 		size(400,400);				//set canvas size
 		background(255);			//set canvas color
 		stroke(0);				//set pen color
-		img = loadImage("palmTrees.jpg", "jpg");
+		img = loadImage("../../data/palmTrees.jpg", "jpg");
 		img.resize(0, height);			//resize loaded image to full height of canvas
 		image(img, 0, 0);			//display image 
 	}
 	
 	public void draw() {
+		image(img, 0, 0);			//display image 
 		//Add drawing code for MyPApplet
 		int[] color = sunColorSec(second());		//calculate color code for sun
 		fill(color[0],color[1],color[2]);	//set sun color

@@ -20,8 +20,8 @@ import processing.core.PApplet;
 /** EarthquakeCityMap
  * An application with an interactive map displaying earthquake data.
  * Author: UC San Diego Intermediate Software Development MOOC team
- * @author Your name here
- * Date: July 17, 2015
+ * @author Vu Nguyen
+ * Date: Mar 07, 2016
  * */
 public class EarthquakeCityMap extends PApplet {
 	
@@ -94,7 +94,7 @@ public class EarthquakeCityMap extends PApplet {
 		for(Feature city : cities) {
 		  cityMarkers.add(new CityMarker(city));
 		}
-	    
+
 		//     STEP 3: read in earthquake RSS feed
 	    List<PointFeature> earthquakes = ParseFeed.parseEarthquake(this, earthquakesURL);
 	    quakeMarkers = new ArrayList<Marker>();
@@ -130,7 +130,6 @@ public class EarthquakeCityMap extends PApplet {
 	}
 	
 	// helper method to draw key in GUI
-	// TODO: Update this method as appropriate
 	private void addKey() {	
 		// Remember you can use Processing's graphics methods here
 		fill(255, 250, 240);
@@ -142,16 +141,40 @@ public class EarthquakeCityMap extends PApplet {
 		text("Earthquake Key", 50, 75);
 		
 		fill(color(255, 0, 0));
-		ellipse(50, 125, 15, 15);
-		fill(color(255, 255, 0));
-		ellipse(50, 175, 10, 10);
-		fill(color(0, 0, 255));
-		ellipse(50, 225, 5, 5);
+		triangle(50-5, 100+5, 50, 100-5, 50+5, 100+5);
+		
+		fill(color(255, 255, 255));
+		ellipse(50, 125, 10, 10);
+		fill(color(255, 255, 255));
+		rect(50-5, 150-5, 10, 10);
 		
 		fill(0, 0, 0);
-		text("5.0+ Magnitude", 75, 125);
-		text("4.0+ Magnitude", 75, 175);
-		text("Below 4.0", 75, 225);
+		text("City Marker", 60, 100);
+		text("Land Quake", 60, 125);
+		text("Ocean Quake", 60, 150);
+		text("Size ~ Magnitude", 60, 175);
+		
+		fill(color(255, 255, 0));
+		ellipse(50, 200, 10, 10);
+		
+		fill(color(0, 0, 255));
+		ellipse(50, 225, 10, 10);
+		
+		fill(color(255, 0, 0));
+		ellipse(50, 250, 10, 10);
+		
+		fill(0, 0, 0);
+		text("Shallow", 60, 200);
+		text("Intermediate", 60, 225);
+		text("Deep", 60, 250);
+		
+		fill(color(255, 255, 255));
+		ellipse(50, 275, 10, 10);
+		line(50-7, 275-7, 50+7, 275+7);
+		line(50-7, 275+7, 50+7, 275-7);
+		
+		fill(0, 0, 0);
+		text("Past Day", 60, 275);
 	}
 
 	
@@ -163,9 +186,11 @@ public class EarthquakeCityMap extends PApplet {
 	private boolean isLand(PointFeature earthquake) {
 		
 		// IMPLEMENT THIS: loop over all countries to check if location is in any of them
-		
-		// TODO: Implement this method using the helper method isInCountry
-		
+		for (Marker country : countryMarkers) {
+			if (isInCountry(earthquake, country)) {
+				return true;
+			}
+		}
 		// not inside any country
 		return false;
 	}
@@ -178,7 +203,31 @@ public class EarthquakeCityMap extends PApplet {
 	// And LandQuakeMarkers have a "country" property set.
 	private void printQuakes() 
 	{
-		// TODO: Implement this method
+		int oceanQuakes = 0;
+		
+		for (Marker country: countryMarkers) {
+			int numQuakes = 0;
+			
+			for (Marker quake: quakeMarkers) {
+				if (((EarthquakeMarker) quake).isOnLand()) {
+					if (((LandQuakeMarker) quake).getCountry() == country.getProperty("name")) {
+						numQuakes++;
+					}
+				}
+			}
+			if (numQuakes > 0) {
+				System.out.println(country.getProperty("name") + ": " + numQuakes + " earthquakes.");
+			}
+		}
+		
+		for (Marker quake: quakeMarkers) {
+			if (!((EarthquakeMarker) quake).isOnLand()) {
+				oceanQuakes++;
+			}
+		}
+		if (oceanQuakes > 0) {
+			System.out.println("Ocean: " + oceanQuakes + " earthquakes.");
+		}
 	}
 	
 	

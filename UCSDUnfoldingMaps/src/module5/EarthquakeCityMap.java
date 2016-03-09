@@ -20,8 +20,8 @@ import processing.core.PApplet;
 /** EarthquakeCityMap
  * An application with an interactive map displaying earthquake data.
  * Author: UC San Diego Intermediate Software Development MOOC team
- * @author Your name here
- * Date: July 17, 2015
+ * @author Vu Nguyen
+ * Date: Mar 09, 2016
  * */
 public class EarthquakeCityMap extends PApplet {
 	
@@ -105,7 +105,7 @@ public class EarthquakeCityMap extends PApplet {
 	    }
 
 	    // could be used for debugging
-	    printQuakes();
+	    //printQuakes();
 	 		
 	    // (3) Add markers to map
 	    //     NOTE: Country markers are not added to the map.  They are used
@@ -145,7 +145,17 @@ public class EarthquakeCityMap extends PApplet {
 	// 
 	private void selectMarkerIfHover(List<Marker> markers)
 	{
-		// TODO: Implement this method
+		if (lastSelected != null) {
+			return;
+		}
+		
+		for (Marker m: markers) {
+			if (m.isInside(map, mouseX, mouseY) && lastSelected == null) {
+				lastSelected = (CommonMarker)m;
+				m.setSelected(true);
+				return;
+			}
+		}
 	}
 	
 	/** The event handler for mouse clicks
@@ -156,9 +166,54 @@ public class EarthquakeCityMap extends PApplet {
 	@Override
 	public void mouseClicked()
 	{
-		// TODO: Implement this method
-		// Hint: You probably want a helper method or two to keep this code
-		// from getting too long/disorganized
+		if (lastClicked != null) {
+			lastClicked.setClicked(false);
+			lastClicked = null;
+			this.unhideMarkers();
+		} else {
+			checkQuakers4Click();
+			if (lastClicked == null) checkCities4Click();
+		}
+	}
+	
+	public void checkQuakers4Click() {
+		for (Marker qm: quakeMarkers) {
+			EarthquakeMarker eqm = (EarthquakeMarker)qm;
+			if (eqm.isInside(map, mouseX, mouseY) && lastClicked == null) { // check if marker is clicked
+				lastClicked = eqm;
+				lastClicked.setClicked(true);
+				for (Marker m: quakeMarkers) {
+					if (m != lastClicked) {
+						m.setHidden(true);
+					}
+				}
+				
+				for (Marker cm: cityMarkers) {
+					if (cm.getDistanceTo(eqm.getLocation()) > eqm.threatCircle()) {
+						cm.setHidden(true);
+					}
+				}
+			}
+		}
+	}
+	
+	public void checkCities4Click() {
+		for (Marker cm: cityMarkers) {
+			CityMarker ctm = (CityMarker)cm;
+			if (ctm.isInside(map, mouseX, mouseY) && lastClicked == null) { // check if marker is clicked
+				lastClicked = ctm;
+				for (Marker m: cityMarkers) {
+					if (m != lastClicked) {
+						m.setHidden(true);
+					}
+				}
+				for (Marker qm: quakeMarkers) {
+					if (qm.getDistanceTo(ctm.getLocation()) > ((EarthquakeMarker)qm).threatCircle()) {
+						qm.setHidden(true);
+					}
+				}
+			}
+		}
 	}
 	
 	
@@ -295,7 +350,7 @@ public class EarthquakeCityMap extends PApplet {
 				
 			// looping over markers making up MultiMarker
 			for(Marker marker : ((MultiMarker)country).getMarkers()) {
-					
+				
 				// checking if inside
 				if(((AbstractShapeMarker)marker).isInsideByLocation(checkLoc)) {
 					earthquake.addProperty("country", country.getProperty("name"));

@@ -72,7 +72,7 @@ public class AirportMap extends PApplet {
 			
 			SimpleLinesMarker sl = new SimpleLinesMarker(route.getLocations(), route.getProperties());
 		
-			System.out.println(sl.getProperties());
+			//System.out.println(sl.getProperties());
 			
 			//UNCOMMENT IF YOU WANT TO SEE ALL ROUTES
 			//routeList.add(sl);

@@ -1,10 +1,11 @@
 package module6;
 
-import java.util.List;
+import java.util.HashMap;
+import java.util.HashSet;
 
 import de.fhpotsdam.unfolding.data.Feature;
 import de.fhpotsdam.unfolding.data.PointFeature;
-import de.fhpotsdam.unfolding.marker.SimpleLinesMarker;
+import processing.core.PConstants;
 import processing.core.PGraphics;
 
 /** 
@@ -12,31 +13,118 @@ import processing.core.PGraphics;
  *   
  * @author Adam Setters and the UC San Diego Intermediate Software Development
  * MOOC team
+ * @author Vu Nguyen
+ * Date: Mar 14, 2016
  *
  */
 public class AirportMarker extends CommonMarker {
-	public static List<SimpleLinesMarker> routes;
+	public static final float ALTITUDE_HIGH = 528; // 0.1
+	public static final float ALTITUDE_EXTREME = 5282; // 1 mile
+	
+	//public static List<SimpleLinesMarker> routes;
+	private HashSet<Integer> connectedTo;
 	
 	public AirportMarker(Feature city) {
 		super(((PointFeature)city).getLocation(), city.getProperties());
-	
+		
+		HashMap<String, Object> properties = city.getProperties();
+		properties.put("id", city.getId());
+		setProperties(properties);
 	}
 	
+
 	@Override
 	public void drawMarker(PGraphics pg, float x, float y) {
-		pg.fill(11);
-		pg.ellipse(x, y, 5, 5);
-		
-		
+		colorDetermine(pg);
+		float size = sizeDetermine();
+		pg.ellipse(x, y, size, size);
 	}
 
 	@Override
 	public void showTitle(PGraphics pg, float x, float y) {
-		 // show rectangle with title
+		String title = toString();
+		pg.pushStyle();
 		
-		// show routes
+		pg.rectMode(PConstants.CORNER);
 		
+		pg.stroke(110);
+		pg.fill(255,255,255);
+		pg.rect(x, y + 15, pg.textWidth(title) + 6, 50, 5);
+		
+		pg.textAlign(PConstants.LEFT, PConstants.TOP);
+		pg.fill(0);
+		pg.text(title, x + 3 , y +18);
+		
+		pg.popStyle();
+	}
+	
+	private void colorDetermine(PGraphics pg) {
+		float alt = getAltitude();
+		
+		if (alt < ALTITUDE_HIGH) {
+			pg.fill(255, 255, 0);
+		}
+		else if (alt < ALTITUDE_EXTREME) {
+			pg.fill(0, 0, 255);
+		}
+		else {
+			pg.fill(255, 0, 0);
+		}
+	}
+	
+	private float sizeDetermine() {
+		int size = connectedTo.size();  
+		if (size < 25) {
+			return 4;
+		} else if (size < 150) {
+			return 8;
+		} else {
+			return 10 + size/25;
+		}
+	}
+	
+	public String toString()
+	{
+		String title = getCode() + " - " + getName() + 
+						"\nis connected to " + getCoverage() + 
+						" other airports.\nElevation: " + getAltitude() + "ft."; 
+		return title.replace("\"", "");
+	}
+	
+	public String getCode() {
+		return (String) getProperty("code");
+	}
+	
+	public String getName() {
+		return (String) getProperty("name");	
+	}
+	
+	public String getCity() {
+		return (String) getProperty("city");	
 		
 	}
 	
+	public String getCountry() {
+		return (String) getProperty("country");	
+		
+	}
+	
+	public float getAltitude() {
+		return Float.parseFloat(getProperty("altitude").toString());
+	}
+	
+	public String getCoverage() {
+		if (connectedTo == null) {
+			return "NA";
+		}
+		return Integer.toString(connectedTo.size());
+	}
+	
+	public void setConnectedTo(HashSet<Integer> ct) {
+		this.connectedTo = ct;
+	}
+	
+	public int airportId() {
+		return Integer.parseInt((String) this.getProperty("id"));
+	}
 }

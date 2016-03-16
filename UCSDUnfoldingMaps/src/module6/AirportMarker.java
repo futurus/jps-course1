@@ -2,6 +2,7 @@ package module6;
 
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 
 import de.fhpotsdam.unfolding.data.Feature;
 import de.fhpotsdam.unfolding.data.PointFeature;
@@ -15,7 +16,7 @@ import processing.core.PGraphics;
  * MOOC team
  * @author Vu Nguyen
  * Date: Mar 14, 2016
- *
+ *       Mar 16, 2016
  */
 public class AirportMarker extends CommonMarker {
 	public static final float ALTITUDE_HIGH = 528; // 0.1
@@ -23,6 +24,8 @@ public class AirportMarker extends CommonMarker {
 	
 	//public static List<SimpleLinesMarker> routes;
 	private HashSet<Integer> connectedTo;
+	private String oneHop;
+	private String twoHops;
 	
 	public AirportMarker(Feature city) {
 		super(((PointFeature)city).getLocation(), city.getProperties());
@@ -58,6 +61,26 @@ public class AirportMarker extends CommonMarker {
 		pg.popStyle();
 	}
 	
+	@Override
+	public void showInfo(PGraphics pg, float x, float y) {
+		float nx = 50;
+		float ny = 50;
+		String title = getInfo();
+		pg.pushStyle();
+		
+		pg.rectMode(PConstants.CORNER);
+		
+		pg.stroke(110);
+		pg.fill(255,255,255);
+		pg.rect(nx, ny + 15, pg.textWidth(title) + 6, 50, 5);
+		
+		pg.textAlign(PConstants.LEFT, PConstants.TOP);
+		pg.fill(0);
+		pg.text(title, nx + 3 , ny +18);
+		
+		pg.popStyle();
+	}
+	
 	private void colorDetermine(PGraphics pg) {
 		float alt = getAltitude();
 		
@@ -83,11 +106,35 @@ public class AirportMarker extends CommonMarker {
 		}
 	}
 	
+	public void setOneHop(int oH, int total) {
+		this.oneHop = Double.toString(Math.round((double)oH/total * 100)) + "%";
+	}
+	
+	public void setTwoHops(int tH, int total) {
+		this.twoHops = Double.toString(Math.round((double)tH/total * 100)) + "%";;
+	}
+	
+	public String getOneHop() {
+		return this.oneHop;
+	}
+	
+	public String getTwoHop() {
+		return this.twoHops;
+	}
+	
 	public String toString()
 	{
 		String title = getCode() + " - " + getName() + 
 						"\nis connected to " + getCoverage() + 
 						" other airports.\nElevation: " + getAltitude() + "ft."; 
+		return title.replace("\"", "");
+	}
+	
+	public String getInfo() {
+		String title = getCode() + " - " + getName() +
+						"\nOne-Hop coverage: " + this.oneHop +
+						"\nTwo-Hop coverage: " + this.twoHops;
+		
 		return title.replace("\"", "");
 	}
 	

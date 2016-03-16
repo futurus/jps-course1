@@ -39,5 +39,6 @@ public class LandQuakeMarker extends EarthquakeMarker {
 		return (String) getProperty("country");
 	}
 
-		
+	@Override
+	public void showInfo(PGraphics pg, float x, float y) {}
 }

@@ -30,6 +30,7 @@ public class OceanQuakeMarker extends EarthquakeMarker {
 	}
 	
 
-	
+	@Override
+	public void showInfo(PGraphics pg, float x, float y) {}
 
 }

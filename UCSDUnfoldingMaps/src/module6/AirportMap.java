@@ -21,13 +21,16 @@ import processing.core.PApplet;
  * MOOC team
  * @author Vu Nguyen
  * Date: Mar 14, 2016
+ * 		 Mar 16, 2016
  *
  */
 public class AirportMap extends PApplet {
 	
 	UnfoldingMap map;
 	private List<Marker> airportList;
-	List<Marker> routeList;
+	private HashMap<Integer, Marker> airportHashMap;
+	private List<Marker> routeList;
+	private HashMap<String, Marker> routeHashMap;
 	
 	public HashMap<Integer, Location> airports;
 	public HashMap<Integer, HashSet<Integer>> connectedTo;
@@ -49,7 +52,11 @@ public class AirportMap extends PApplet {
 		List<ShapeFeature> routes = ParseFeed.parseRoutes(this, "routes.dat");
 		
 		// list for markers, hashmap for quicker access when matching with routes
+		
 		airportList = new ArrayList<Marker>();
+		airportHashMap = new HashMap<Integer, Marker>();
+		routeList = new ArrayList<Marker>();
+		routeHashMap = new HashMap<String, Marker>();
 		airports = new HashMap<Integer, Location>();
 		connectedTo = new HashMap<Integer, HashSet<Integer>>();
 		
@@ -80,13 +87,14 @@ public class AirportMap extends PApplet {
 				//m.setRadius(5);
 				m.setConnectedTo(connectedTo.get(Integer.parseInt(feature.getId())));
 				airportList.add(m);
-			
+				airportHashMap.put(Integer.parseInt(feature.getId()), m);
+				
 				// put airport in hashmap with OpenFlights unique id for key
 				airports.put(Integer.parseInt(feature.getId()), feature.getLocation());
 			}
 		}
 		
-		routeList = new ArrayList<Marker>();
+		
 		for (ShapeFeature route : routes) {
 			int source = Integer.parseInt((String)route.getProperty("source"));
 			int dest = Integer.parseInt((String)route.getProperty("destination"));
@@ -99,7 +107,9 @@ public class AirportMap extends PApplet {
 			
 			SimpleLinesMarker sl = new SimpleLinesMarker(route.getLocations(), route.getProperties());
 			sl.setHidden(true);
+			
 			routeList.add(sl);
+			routeHashMap.put((String)route.getProperty("source") + "-" + (String)route.getProperty("destination"), sl);
 		}
 		
 		map.addMarkers(routeList);
@@ -122,6 +132,7 @@ public class AirportMap extends PApplet {
 			lastSelected = null;
 		
 		}
+		
 		selectMarkerIfHover(airportList);
 	}
 	
@@ -133,46 +144,72 @@ public class AirportMap extends PApplet {
 			return;
 		}
 		
-		for (Marker ap : airports) 
-		{
-			CommonMarker airport = (CommonMarker)ap;
-			if (airport.isInside(map,  mouseX, mouseY)) {
-				lastSelected = (AirportMarker)airport;
-				airport.setSelected(true);
-				return;
-			}
-		}
+		Marker hitMarker = map.getFirstHitMarker(mouseX, mouseY);
+	    if (hitMarker != null && hitMarker instanceof AirportMarker) {
+	        // Select current marker
+	    	lastSelected = (AirportMarker)hitMarker;
+	        lastSelected.setSelected(true);
+	    }
+		
+	    return;
 	}
 	
 	@Override
 	public void mouseClicked()
 	{
-		lastClicked = null;
+		if (lastClicked != null) {
+			lastClicked.setClicked(false);
+			lastClicked = null;
+		}
+		
 		hideMarkers();
 		
-		for (Marker marker : airportList) {
-			if (marker.isInside(map, mouseX, mouseY)) {
-				lastClicked = (AirportMarker)marker;
-
-				HashSet<Integer> conn = connectedTo.get(lastClicked.airportId());
-				lastClicked.setHidden(false);
+		Marker hitMarker = map.getFirstHitMarker(mouseX, mouseY);
+	    if (hitMarker != null && hitMarker instanceof AirportMarker) {
+	        // Select current marker
+	    	lastClicked = (AirportMarker)hitMarker;
+	    	lastClicked.setHidden(false);
+	    	lastClicked.setClicked(true);
+	        
+	    	HashSet<Integer> conn = connectedTo.get(lastClicked.airportId());
+	    	
+	    	if (conn.size() == 0) return;
+			if (lastClicked.getOneHop() == null) {
+				lastClicked.setOneHop(conn.size(), airports.keySet().size());
+			}
+			HashSet<Integer> connections = new HashSet<Integer>(conn);
+			
+	    	for (Integer c : conn) {
+	    		AirportMarker am = (AirportMarker)airportHashMap.get(c);
+	    		if (am == null) continue;
+	    		am.setColor(50);
+	    		am.setHidden(false); // set color?
+	    		
+	    		SimpleLinesMarker lm = getRoute(Integer.toString(lastClicked.airportId()), Integer.toString(am.airportId()));
+				if (lm != null) {
+					lm.setColor(100);
+					lm.setHidden(false);
+				}
 				
-				for (Marker mhide : airportList) {
-					AirportMarker am = (AirportMarker)mhide;
-					// is am connected to lastClicked?
-									
-					boolean isConnected = conn.contains(am.airportId());
-					
-					if (isConnected) {
-						am.setHidden(false);
-						SimpleLinesMarker lm = getRoute(lastClicked, am);
-						if (lm != null) {
-							lm.setHidden(false);
-						}
+				HashSet<Integer> connSub = connectedTo.get(am.airportId());
+				
+				if (connSub.size() > 0) {				
+					for (Integer cs : connSub) {
+						AirportMarker amSub = (AirportMarker)airportHashMap.get(cs);
+						if (amSub == null) continue;
+						
+						connections.add(cs);
+						amSub.setHighlightColor(150);
+						amSub.setHidden(false); // set color?
+
 					}
 				}
+	    	}
+	    	
+	    	if (lastClicked.getTwoHop() == null) {
+				lastClicked.setTwoHops(connections.size(), airports.size());
 			}
-		}
+	    }
 		
 		if (lastClicked == null) {
 			unhideMarkers();
@@ -188,32 +225,15 @@ public class AirportMap extends PApplet {
 	
 	// loop over and hide all markers
 	private void hideMarkers() {
-		for(Marker marker : airportList) {
-			marker.setHidden(true);
-		}
-		for(Marker route : routeList) {
-			route.setHidden(true);
+		for(Marker m : map.getMarkers()) {
+			m.setHidden(true);
 		}
 	}
 	
-	public SimpleLinesMarker getRoute(Marker src, Marker des) {
-		for (int i = 0; i < routeList.size(); i++) {
-			SimpleLinesMarker lm = (SimpleLinesMarker)routeList.get(i);
-			Location s = airports.get(((AirportMarker)src).airportId());
-			Location d = airports.get(((AirportMarker)des).airportId());
-			
-			List<Location> locs = lm.getLocations();
-
-			if (locs.size() > 1) {
-				if ((s == locs.get(0) && d == locs.get(1)) ||
-						s == locs.get(1) && d == locs.get(0)) {
-					return lm;
-				}
-			}
-		}
-		return null;
+	public SimpleLinesMarker getRoute(String src, String des) {
+		return (SimpleLinesMarker)routeHashMap.get(src + "-" + des);
 	}
-	
+		
 	private void addKey() {	
 		// Remember you can use Processing's graphics methods here
 		fill(255, 250, 240);
@@ -229,27 +249,12 @@ public class AirportMap extends PApplet {
 		text("Airport Key", xbase+25, ybase+25);
 		
 		fill(150, 30, 30);
-		/*int tri_xbase = xbase + 35;
-		int tri_ybase = ybase + 50;
-		triangle(tri_xbase, tri_ybase-CityMarker.TRI_SIZE, tri_xbase-CityMarker.TRI_SIZE, 
-				tri_ybase+CityMarker.TRI_SIZE, tri_xbase+CityMarker.TRI_SIZE, 
-				tri_ybase+CityMarker.TRI_SIZE);*/
 
 		fill(0, 0, 0);
 		textAlign(LEFT, CENTER);
-//		text("Airport Marker", tri_xbase + 15, tri_ybase);
-//		
-//		text("Land Quake", xbase+50, ybase+70);
-//		text("Ocean Quake", xbase+50, ybase+90);
+
 		text("Size ~ Connectivity", xbase+25, ybase+50);
 		text("Elevation (Sea level)", xbase+25, ybase+75);
-		
-		/*fill(255, 255, 255);
-		ellipse(xbase+35, 
-				ybase+70, 
-				10, 
-				10);
-		rect(xbase+35-5, ybase+90-5, 10, 10);*/
 		
 		fill(color(255, 255, 0));
 		ellipse(xbase+35, ybase+95, 12, 12);
@@ -263,15 +268,6 @@ public class AirportMap extends PApplet {
 		text("Up to 528ft", xbase+50, ybase+95);
 		text("528ft to 5282ft", xbase+50, ybase+115);
 		text("Over 5282ft", xbase+50, ybase+135);
-		
-		/*fill(255, 255, 255);
-		int centerx = xbase+35;
-		int centery = ybase+200;
-		ellipse(centerx, centery, 12, 12);
-
-		strokeWeight(2);
-		line(centerx-8, centery-8, centerx+8, centery+8);
-		line(centerx-8, centery+8, centerx+8, centery-8);*/
-		
+				
 	}
 }
